@@ -1,0 +1,37 @@
+# Self-hosted stack: Next.js app + Ollama on one machine.
+# Requires Docker + Docker Compose.
+#
+#   docker compose up --build
+#   # first time, pull a model inside the ollama container:
+#   docker compose exec ollama ollama pull qwen3:8b
+#
+# App: http://localhost:3000
+
+services:
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    restart: unless-stopped
+
+  web:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      OLLAMA_HOST: http://ollama:11434
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen3:8b}
+      BRAVE_API_KEY: ${BRAVE_API_KEY:-}
+      ADMIN_ACCESS_TOKEN: ${ADMIN_ACCESS_TOKEN:-}
+      RATE_LIMIT_PER_MINUTE: ${RATE_LIMIT_PER_MINUTE:-20}
+    volumes:
+      - app_data:/app/data
+    depends_on:
+      - ollama
+    restart: unless-stopped
+
+volumes:
+  ollama_data:
+  app_data:

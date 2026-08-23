@@ -1,0 +1,44 @@
+{
+  "name": "gcetly-ai-assistant",
+  "version": "3.8.0",
+  "private": true,
+  "description": "GCE-TLY AI Assistant \u2014 BM25 RAG, doc pipeline, multi-provider LLM, security hardened",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "crawl": "tsx scripts/crawl-gcetly.ts",
+    "update-knowledge": "tsx scripts/update-knowledge.ts",
+    "test": "tsx tests/test-questions.ts && tsx tests/test-crawler.ts && tsx tests/test-document-process.ts",
+    "test:core": "tsx tests/test-questions.ts",
+    "test:eval": "tsx tests/eval-hallucination.ts",
+    "reindex-docs": "tsx scripts/reindex-documents.ts",
+    "crawl:recommended": "tsx scripts/crawl-gcetly.ts --site \"gcetly.ac.in|https://gcetly.ac.in|official_website|1|GCE-TLY\" --site \"annauniv.edu|https://www.annauniv.edu|government_portal|2|Anna University\" --max-pages 80",
+    "knowledge:refresh": "tsx scripts/update-knowledge.ts",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:install": "playwright install chromium"
+  },
+  "dependencies": {
+    "lucide-react": "^0.441.0",
+    "next": "14.2.15",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "@types/react": "^18.3.1",
+    "@types/react-dom": "^18.3.1",
+    "autoprefixer": "^10.4.20",
+    "cheerio": "^1.0.0",
+    "postcss": "^8.4.45",
+    "tailwindcss": "^3.4.10",
+    "tsx": "^4.19.1",
+    "typescript": "^5.5.4",
+    "@playwright/test": "^1.49.0"
+  },
+  "engines": {
+    "node": ">=18.17.0"
+  }
+}

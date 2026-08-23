@@ -1,0 +1,13 @@
+node_modules/
+.next/
+out/
+.env
+.env.local
+*.log
+data/crawled/
+data/feedback/
+data/gcetly.db
+data/gcetly.db-wal
+data/gcetly.db-shm
+.DS_Store
+data/uploads/

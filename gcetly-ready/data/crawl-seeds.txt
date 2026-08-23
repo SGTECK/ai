@@ -1,0 +1,9 @@
+# Official seeds for expanded crawl (one URL per line)
+https://gcetly.ac.in/
+https://gcetly.ac.in/academiccalendar.php
+https://www.gcetly.ac.in/admissionprospectus.php
+https://www.gcetly.ac.in/hostel.php
+https://www.gcetly.ac.in/facilitiesnew.php
+https://gcetly.ac.in/nirfnew.php
+https://gcetly.ac.in/idp.php
+https://gcetly.ac.in/contactus.php

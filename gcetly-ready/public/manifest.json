@@ -1,0 +1,17 @@
+{
+  "name": "GCE-TLY AI Assistant",
+  "short_name": "GCE-TLY AI",
+  "description": "Official AI information assistant for Government College of Engineering, Tirunelveli",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FAFAF8",
+  "theme_color": "#1B3A5C",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "https://gcetly.ac.in/imgs/gcelogo.jpg",
+      "sizes": "any",
+      "type": "image/jpeg"
+    }
+  ]
+}
