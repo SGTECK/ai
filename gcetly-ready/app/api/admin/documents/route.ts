@@ -52,6 +52,11 @@ export async function POST(req: NextRequest) {
   const denied = await rejectUnlessAdmin(req);
   if (denied) return denied;
 
+  const contentLength = Number(req.headers.get("content-length") || 0);
+  if (contentLength > MAX_UPLOAD_BYTES + 256 * 1024) {
+    return NextResponse.json({ error: "Upload too large" }, { status: 413 });
+  }
+
   try {
     const form = await req.formData();
     const file = form.get("file");

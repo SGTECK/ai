@@ -65,9 +65,9 @@ export function smallTalkReplyFor(
  * the retrieved context, optional live web results, and the CURRENT
  * conversation's own history, all supplied fresh by the caller.
  *
- * Live web search is optional (see lib/webSearch.ts). When web results are
- * present they are clearly labeled so the model can cite them separately
- * from the curated local knowledge base. */
+ * Live web search uses a free DuckDuckGo fallback by default (see
+ * lib/webSearch.ts). When web results are present they are clearly labeled so
+ * the model can cite them separately from the curated local knowledge base. */
 export function buildSystemPrompt(params: {
   retrieved: RetrievedItem[];
   language: Language;
@@ -86,7 +86,7 @@ export function buildSystemPrompt(params: {
     explicitSearchRequest,
     webContextBlock = "",
     webSearchAttempted = false,
-    webSearchAvailable = false,
+    webSearchAvailable = true,
   } = params;
 
   const localContextBlock = retrieved.length
@@ -116,8 +116,11 @@ CURRENT-INFO NOTE: this question looks time-sensitive. Live web results (if any)
       : webSearchAttempted
       ? `
 CURRENT-INFO NOTE: a live web search was attempted but returned no usable results. Answer only from the local CONTEXT below and note that the information may not be fully up-to-date; recommend checking gcetly.ac.in for the latest notices.`
+      : webSearchAvailable
+      ? `
+    CURRENT-INFO CAVEAT: this question looks time-sensitive. Live web search is available, but it was not needed for this response. Answer only from the supplied CONTEXT and add a brief note that gcetly.ac.in is the place to confirm anything urgent.`
       : `
-CURRENT-INFO CAVEAT: this question looks time-sensitive and this deployment has NO live web search capability. Answer only from local CONTEXT (last automated recrawl) and add a brief note that gcetly.ac.in is the place to confirm anything urgent.`
+    CURRENT-INFO CAVEAT: this question looks time-sensitive and this deployment has NO live web search capability. Answer only from local CONTEXT (last automated recrawl) and add a brief note that gcetly.ac.in is the place to confirm anything urgent.`
     : "";
 
   const explicitSearchBlock = explicitSearchRequest
@@ -129,10 +132,10 @@ The user asked for deep research / live verification. Live web results are inclu
 ## Sources
 ## Confidence Note
 Under Sources, clearly separate local knowledge-base items from live web results. Under Confidence Note, say that live web results were used and still recommend verifying high-stakes facts on the official site.`
-      : `
+          : `
 The user asked for deep research / live verification. ${
           webSearchAvailable
-            ? "A live search was attempted but returned little useful information."
+            ? "Free live search is available, but returned little useful information for this request."
             : "This deployment has no web search capability at all."
         } Be upfront about that, then answer as well as you can from local CONTEXT. Structure the reply with:
 ## Answer

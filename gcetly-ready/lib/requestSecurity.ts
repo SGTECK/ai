@@ -7,6 +7,8 @@ export const MAX_HISTORY_MESSAGES = 12;
 export const MAX_HISTORY_CONTENT = 4000;
 /** Session ids are opaque client tokens — keep short and charset-safe. */
 export const MAX_SESSION_ID_LENGTH = 64;
+/** Keep malformed or abusive chat bodies out of JSON parsing. */
+export const MAX_CHAT_BODY_BYTES = 128 * 1024;
 
 /**
  * Strip characters that are never needed for college Q&A and can confuse
@@ -76,4 +78,15 @@ export function validateChatMessage(raw: unknown): {
 export function requireJsonContentType(contentType: string | null): boolean {
   if (!contentType) return false;
   return contentType.toLowerCase().includes("application/json");
+}
+
+/** Browser requests to this app should not be initiated by another origin. */
+export function isSameOriginRequest(origin: string | null, host: string | null): boolean {
+  if (!origin) return true;
+  if (!host) return false;
+  try {
+    return new URL(origin).host === host.split(",")[0].trim();
+  } catch {
+    return false;
+  }
 }

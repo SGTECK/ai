@@ -53,20 +53,26 @@ curl "http://localhost:3000/api/health?warm=1"
 - `/api/health` reports `rateLimitBackend`, `feedbackBackend`, and `sqlitePath`.
 - Requires **Node.js 22.5+** for `node:sqlite` (falls back gracefully on older Node).
 
-## v3.3 — Hybrid live web search (optional)
+## v3.3 — Hybrid live web search (free by default)
 
 **What was added:**
 
-- Live web search via Brave (`BRAVE_API_KEY`) or free DuckDuckGo HTML fallback.
+- Live web search via self-hosted SearXNG on the college server, with DuckDuckGo fallback and optional Brave enhancement (`BRAVE_API_KEY`).
 - In-memory + SQLite search cache (30 min TTL).
 - Triggered for time-sensitive questions, deep-research requests, or low local confidence.
 - Multi-site crawl helper: `npm run crawl -- --with-recommended-sites`
 - Admin **Refresh knowledge** button rebuilds auto-KB from last crawl.
 
-**Setup (optional Brave key):**
+**Optional Brave enhancement:**
 ```bash
 BRAVE_API_KEY=your_key_here   # free tier: https://brave.com/search/api/
 ```
+
+Docker Compose starts SearXNG automatically and connects the app to it at
+`http://searxng:8080`. For a non-Docker deployment, set `SEARXNG_URL` to the
+college server's internal SearXNG URL. The production image uses Next.js
+standalone output for a smaller image and faster startup; Ollama is internal
+only and is not published to the host network.
 
 ## v3.2 — Grounding hardening, confidence UI, retrieval improvements (Aug 2026)
 
@@ -104,7 +110,7 @@ npm run test:eval   # retrieval/refusal eval harness
 **What changed:** only `lib/anthropic.ts` → `lib/ollama.ts` (same `streamChat()` interface, so `app/api/chat/route.ts` needed minimal edits) and the parts of `lib/systemPrompt.ts` that referenced the web search tool. Everything else — retrieval, the knowledge base, the multi-site crawler, the test suite, every UI component, the admin dashboard — is untouched, because none of it was ever Claude-specific.
 
 **What you lose, stated plainly, not glossed over:**
-- **No live web search.** Ollama has no equivalent to Anthropic's server-executed search tool. Questions like "who is the principal" now answer from whatever the local knowledge base has — kept reasonably fresh by the daily recrawl automation, but not a live per-question lookup. The system prompt now adds an honest caveat to these answers instead of pretending to search (see `needsCurrentInfo()`/`isDeepResearchRequest()` in `lib/retrieval.ts` — same trigger detection, new job).
+- **Free live web search is available.** The app uses DuckDuckGo HTML without an API key for current-info and explicit research requests. It is a public external service, so it may occasionally throttle requests; the app rate limit and persistent cache reduce that risk. Brave remains optional, not required.
 - **Weaker anti-hallucination discipline.** This is the one that actually matters most for this project's core promise. Claude follows "only answer from the given context" instructions more reliably than most open-source models this size. The system prompt leans harder on explicit refusal instructions to compensate, but **test this with your actual chosen model** before trusting it — this is a real quality tradeoff, not a formality.
 - **No API key to configure**, which also means no billing dashboard to check, no rate-limit-from-Anthropic's-side to worry about — one less moving part.
 
@@ -210,7 +216,7 @@ Official gcetly.ac.in
         |
    lib/systemPrompt.ts             (grounding rules, hallucination control, citations)
         v
-   lib/ollama.ts                    (local Ollama model, streaming, no live web search -- see v3.1 above)
+  lib/ollama.ts                    (local Ollama model, streaming)
         v
    Verified, cited answer  -->  components/ChatWindow.tsx
 ```
@@ -321,8 +327,8 @@ The recognition instance and its listeners are torn down on component unmount, s
 ```
 Without `allow="microphone"` on that tag, voice input will correctly show the "permission denied" state — that's the browser's iframe security model, not a bug in this code.
 
-## 6. No live web search (as of v3.1) — what happens instead
-Ollama has no equivalent to a server-executed search tool, so this deployment can't look anything up live. Questions containing words like "latest," "current," "2026-27," "notification," "deadline," or role-holder questions like "who is the principal" (see `needsCurrentInfo()` in `lib/retrieval.ts`) still get detected — but now that detection triggers an honest caveat in the answer (from the local knowledge base, refreshed roughly daily by the recrawl automation, not a live check — see `lib/systemPrompt.ts`'s `currentInfoCaveat`) instead of an actual search. If someone explicitly asks to "search the web" or "verify this live," the assistant says plainly that it can't, rather than pretending to.
+## 6. Free live web search — what happens
+Ollama remains local and free, while the server performs a no-key DuckDuckGo HTML lookup for questions containing words like "latest," "current," "2026-27," "notification," "deadline," or role-holder questions like "who is the principal" (see `needsCurrentInfo()` in `lib/retrieval.ts`). Explicit requests to "search the web" or "verify this live" also trigger the lookup. Search results are labeled separately from the curated local knowledge base and cached for 30 minutes. DuckDuckGo is an external public service, so no provider can honestly promise permanent availability.
 
 **Stop generating:** the send button becomes a Stop button while streaming. Clicking it aborts the fetch client-side, which Next.js surfaces as the request's `AbortSignal` firing server-side too, which in turn cancels the in-flight Ollama request — not just a UI-level "give up listening" that leaves generation running server-side in the background.
 

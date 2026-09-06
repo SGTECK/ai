@@ -15,13 +15,16 @@ import {
   webResultsToSources,
   isWebSearchConfigured,
 } from "@/lib/webSearch";
-import { routeQuery, shouldRunWebSearch } from "@/lib/queryRouter";
+import { routeQuery, shouldRunWebSearch, isCollegeSpecificQuery } from "@/lib/queryRouter";
 import { getCachedAnswer, setCachedAnswer } from "@/lib/answerCache";
+import { releaseLlmSlot, tryAcquireLlmSlot } from "@/lib/serverCapacity";
 import {
   sanitizeHistory,
   validateChatMessage,
   isValidSessionId,
   requireJsonContentType,
+  isSameOriginRequest,
+  MAX_CHAT_BODY_BYTES,
 } from "@/lib/requestSecurity";
 
 export const runtime = "nodejs";
@@ -48,12 +51,50 @@ function sseEncode(obj: unknown): Uint8Array {
   return new TextEncoder().encode(`data: ${JSON.stringify(obj)}\n\n`);
 }
 
+/**
+ * Guard for FAQ fast-path: ensures the top FAQ result's question actually
+ * covers the user's query tokens (≥65% coverage) before bypassing the LLM.
+ * Prevents false positives like "personal mobile number" matching the principal FAQ.
+ */
+function isFaqFastMatch(message: string, top: RetrievedItem): boolean {
+  if (top.kind !== "faq") return false;
+  const msgWords = message.toLowerCase().match(/[\w\u0B80-\u0BFF]+/gu) || [];
+  const stopwords = new Set([
+    "the", "is", "a", "an", "of", "to", "in", "for", "and", "or", "on", "at",
+    "what", "how", "who", "when", "which", "are", "do", "does", "i",
+    "can", "you", "me", "my", "please", "tell", "about", "will", "it", "this",
+    "that", "with", "be", "there", "number", "from", "by", "as", "if",
+    "was", "were", "been", "being", "have", "has", "had", "did", "done",
+    "என்ன", "எப்படி", "எங்கே", "யார்", "எப்போது", "இருக்கிறது", "உள்ளது",
+  ]);
+  const queryTokens = msgWords.filter((w) => w.length > 1 && !stopwords.has(w));
+  if (queryTokens.length === 0) return false;
+
+  const titleWords = (top.title + " " + top.text.slice(0, 120))
+    .toLowerCase()
+    .match(/[\w\u0B80-\u0BFF]+/gu) || [];
+  const titleSet = new Set(titleWords);
+
+  let matched = 0;
+  for (const t of queryTokens) {
+    if (titleSet.has(t)) matched++;
+  }
+  return matched / queryTokens.length >= 0.65;
+}
+
 export async function POST(req: NextRequest) {
   // --- Security: reject non-JSON posts (stops casual form/CSRF-style noise) ---
   if (!requireJsonContentType(req.headers.get("content-type"))) {
     return new Response(JSON.stringify({ error: "Content-Type must be application/json" }), {
       status: 415,
     });
+  }
+  const contentLength = Number(req.headers.get("content-length") || 0);
+  if (contentLength > MAX_CHAT_BODY_BYTES) {
+    return new Response(JSON.stringify({ error: "Request body is too large" }), { status: 413 });
+  }
+  if (!isSameOriginRequest(req.headers.get("origin"), req.headers.get("host"))) {
+    return new Response(JSON.stringify({ error: "Cross-origin request blocked" }), { status: 403 });
   }
 
   let body: ChatRequestBody;
@@ -150,32 +191,6 @@ export async function POST(req: NextRequest) {
         }
       }
 
-function isFaqFastMatch(message: string, top: RetrievedItem): boolean {
-  if (top.kind !== "faq") return false;
-  const msgWords = message.toLowerCase().match(/[\w\u0B80-\u0BFF]+/gu) || [];
-  const stopwords = new Set([
-    "the", "is", "a", "an", "of", "to", "in", "for", "and", "or", "on", "at",
-    "what", "how", "who", "when", "which", "are", "do", "does", "i",
-    "can", "you", "me", "my", "please", "tell", "about", "will", "it", "this",
-    "that", "with", "be", "there", "number", "from", "by", "as", "if",
-    "was", "were", "been", "being", "have", "has", "had", "did", "done",
-    "என்ன", "எப்படி", "எங்கே", "யார்", "எப்போது", "இருக்கிறது", "உள்ளது",
-  ]);
-  const queryTokens = msgWords.filter((w) => w.length > 1 && !stopwords.has(w));
-  if (queryTokens.length === 0) return false;
-
-  const titleWords = (top.title + " " + top.text.slice(0, 120)).toLowerCase().match(/[\w\u0B80-\u0BFF]+/gu) || [];
-  const titleSet = new Set(titleWords);
-
-  let matched = 0;
-  for (const t of queryTokens) {
-    if (titleSet.has(t)) matched++;
-  }
-
-  const coverage = matched / queryTokens.length;
-  return coverage >= 0.65;
-}
-
       const { items: retrieved, topScore } = await hybridRetrieve(message, slimHistory, topK);
       trackEvent("chat_query", message.slice(0, 120));
       let confidence = scoreToConfidence(topScore);
@@ -244,9 +259,10 @@ function isFaqFastMatch(message: string, top: RetrievedItem): boolean {
         }
       }
 
-      // Hard refusal only when BOTH local and web have nothing useful
-      // (and user did not explicitly ask for deep research).
-      if (confidence === "none" && webSources.length === 0 && !explicitSearchRequest) {
+      // Hard refusal only when BOTH local and web have nothing useful,
+      // AND the query is specifically about GCE-TLY college data.
+      const isCollege = isCollegeSpecificQuery(message);
+      if (confidence === "none" && webSources.length === 0 && !explicitSearchRequest && isCollege) {
         close({
           text: fallbackFor(language),
           sources: [],
@@ -271,6 +287,17 @@ function isFaqFastMatch(message: string, top: RetrievedItem): boolean {
         new Map(retrieved.map((r) => [r.source, { url: r.source, title: r.title }])).values()
       );
       const followUps = getFollowUps(retrieved[0]?.category, message);
+
+      if (!tryAcquireLlmSlot()) {
+        close({
+          text: "The server is currently handling its maximum number of AI requests. Please try again in a moment.",
+          sources: [],
+          followUps: getFollowUps(undefined, message),
+          confidence: "none",
+          topScore,
+        });
+        return;
+      }
 
       try {
         let assembled = "";
@@ -337,6 +364,7 @@ function isFaqFastMatch(message: string, top: RetrievedItem): boolean {
             : raw;
         controller.enqueue(sseEncode({ type: "error", error: msg, retryable: false }));
       } finally {
+        releaseLlmSlot();
         controller.close();
       }
     },

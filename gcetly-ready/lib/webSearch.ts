@@ -1,9 +1,10 @@
 /**
- * Optional live web search layer.
+ * Free live web search layer.
  *
  * Providers (in order):
- * 1. Brave Search API — when BRAVE_API_KEY is set (recommended)
- * 2. DuckDuckGo HTML (no key) — lightweight fallback
+ * 1. Self-hosted SearXNG (when SEARXNG_URL is set)
+ * 2. Brave Search API (when BRAVE_API_KEY is set)
+ * 3. DuckDuckGo HTML (no key) — public fallback
  *
  * In-memory cache (TTL) avoids burning quota on repeated questions.
  * Search is only called when the chat route decides it is needed.
@@ -24,14 +25,15 @@ export interface WebSearchResult {
 
 export interface WebSearchResponse {
   results: WebSearchResult[];
-  provider: "brave" | "duckduckgo" | "none" | "cache";
+  provider: "searxng" | "brave" | "duckduckgo" | "none" | "cache";
   error?: string;
   cached?: boolean;
 }
 
 const BRAVE_API_KEY = process.env.BRAVE_API_KEY || "";
+const SEARXNG_URL = process.env.SEARXNG_URL || "";
 const MAX_RESULTS = 5;
-const SEARCH_TIMEOUT_MS = Number(process.env.SEARCH_TIMEOUT_MS ?? 4000);
+const SEARCH_TIMEOUT_MS = Number(process.env.SEARCH_TIMEOUT_MS ?? 2500);
 const CACHE_TTL_MS = 30 * 60 * 1000; // 30 minutes
 const CACHE_MAX_ENTRIES = 200;
 /** Max live (non-cache) searches per rolling minute process-wide. */
@@ -153,9 +155,55 @@ function rankResults(results: WebSearchResult[]): WebSearchResult[] {
   return [...results].sort((a, b) => scoreResult(b) - scoreResult(a));
 }
 
+function searchSignal(parent?: AbortSignal): AbortSignal {
+  const timeout = AbortSignal.timeout(SEARCH_TIMEOUT_MS);
+  return parent ? AbortSignal.any([parent, timeout]) : timeout;
+}
+
 // --- Brave ----------------------------------------------------------------
 
-async function searchBrave(query: string): Promise<WebSearchResponse> {
+async function searchSearXNG(query: string, signal?: AbortSignal): Promise<WebSearchResponse> {
+  if (!SEARXNG_URL) {
+    return { results: [], provider: "none", error: "SEARXNG_URL not set" };
+  }
+
+  try {
+    const url = new URL("/search", SEARXNG_URL);
+    url.searchParams.set("q", query);
+    url.searchParams.set("format", "json");
+    url.searchParams.set("language", "en");
+    url.searchParams.set("safesearch", "1");
+
+    const res = await fetch(url.toString(), {
+      headers: { Accept: "application/json" },
+      signal: searchSignal(signal),
+    });
+    if (!res.ok) {
+      return { results: [], provider: "searxng", error: `SearXNG returned ${res.status}` };
+    }
+
+    const data = await res.json();
+    const results = rankResults(
+      (Array.isArray(data.results) ? data.results : [])
+        .slice(0, MAX_RESULTS)
+        .map((item: any) => ({
+          title: String(item.title || "").slice(0, 200),
+          url: String(item.url || ""),
+          snippet: String(item.content || "").slice(0, 400),
+        }))
+        .filter((r: WebSearchResult) => r.url.startsWith("http") && r.title)
+    );
+    return { results, provider: "searxng" };
+  } catch (err) {
+    return {
+      results: [],
+      provider: "searxng",
+      error: err instanceof Error ? err.message : "SearXNG search failed",
+    };
+  }
+}
+
+async function searchBrave(query: string, signal?: AbortSignal): Promise<WebSearchResponse> {
   if (!BRAVE_API_KEY) {
     return { results: [], provider: "none", error: "BRAVE_API_KEY not set" };
   }
@@ -173,7 +221,7 @@ async function searchBrave(query: string): Promise<WebSearchResponse> {
         "Accept-Encoding": "gzip",
         "X-Subscription-Token": BRAVE_API_KEY,
       },
-      signal: AbortSignal.timeout(SEARCH_TIMEOUT_MS),
+      signal: searchSignal(signal),
     });
 
     if (!res.ok) {
@@ -210,7 +258,7 @@ async function searchBrave(query: string): Promise<WebSearchResponse> {
 
 // --- DuckDuckGo HTML fallback (no API key) --------------------------------
 
-async function searchDuckDuckGo(query: string): Promise<WebSearchResponse> {
+async function searchDuckDuckGo(query: string, signal?: AbortSignal): Promise<WebSearchResponse> {
   try {
     // html.duckduckgo.com is the non-JS version; results are in simple anchors
     const url = new URL("https://html.duckduckgo.com/html/");
@@ -221,10 +269,10 @@ async function searchDuckDuckGo(query: string): Promise<WebSearchResponse> {
       headers: {
         "Content-Type": "application/x-www-form-urlencoded",
         "User-Agent":
-          "GCETLY-AI-Assistant/3.3 (college information bot; +https://gcetly.ac.in)",
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
       },
       body: `q=${encodeURIComponent(query)}`,
-      signal: AbortSignal.timeout(SEARCH_TIMEOUT_MS),
+      signal: searchSignal(signal),
       redirect: "follow",
     });
 
@@ -291,13 +339,17 @@ async function searchDuckDuckGo(query: string): Promise<WebSearchResponse> {
 
 /**
  * Run a live web search with cache + provider fallback.
- * Order: cache → Brave (if key) → DuckDuckGo.
+ * Order: cache → self-hosted SearXNG → Brave (if configured) → DuckDuckGo.
+ *
+ * DuckDuckGo requires no account or API key. It is an external public service,
+ * so deployments should expect occasional throttling and use the persistent
+ * cache rather than treating public availability as a contractual guarantee.
  */
 
 /** P0: in-memory web search cache (reduce repeated DDG/Brave latency). */
 export async function liveWebSearch(
   query: string,
-  _options?: { signal?: AbortSignal }
+  options?: { signal?: AbortSignal }
 ): Promise<WebSearchResponse> {
   const cleaned = query.trim().slice(0, 300);
   if (!cleaned) {
@@ -315,9 +367,17 @@ export async function liveWebSearch(
     };
   }
 
-  // Prefer Brave when configured
+  if (SEARXNG_URL) {
+    const searxng = await searchSearXNG(cleaned, options?.signal);
+    if (searxng.results.length > 0) {
+      setCache(cleaned, searxng);
+      return searxng;
+    }
+  }
+
+  // Use Brave only when explicitly configured; the default remains free.
   if (BRAVE_API_KEY) {
-    const brave = await searchBrave(cleaned);
+    const brave = await searchBrave(cleaned, options?.signal);
     if (brave.results.length > 0) {
       setCache(cleaned, brave);
       return brave;
@@ -325,7 +385,7 @@ export async function liveWebSearch(
     // Fall through to DuckDuckGo if Brave returned nothing / errored
   }
 
-  const ddg = await searchDuckDuckGo(cleaned);
+  const ddg = await searchDuckDuckGo(cleaned, options?.signal);
   if (ddg.results.length > 0) {
     setCache(cleaned, ddg);
   }
@@ -353,7 +413,7 @@ export function formatWebResultsForPrompt(results: WebSearchResult[]): string {
   );
 }
 
-/** True when at least one search path can run (Brave key or DDG fallback). */
+/** True when at least one search path can run (SearXNG, Brave, or DDG). */
 export function isWebSearchConfigured(): boolean {
   // DuckDuckGo is always available as fallback, so search is always "configured"
   // from a capability standpoint. Callers can still check provider in the response.

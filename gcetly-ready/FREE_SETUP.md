@@ -73,7 +73,10 @@ You **cannot** get a free always-on GPU cloud forever. For ₹0, an **always-on 
 
 ## 5. Skip paid extras
 
-- Leave `BRAVE_API_KEY` empty → free DuckDuckGo fallback (used less in FREE_MODE)
+- Leave `BRAVE_API_KEY` empty → self-hosted SearXNG is used when Docker Compose is running; DuckDuckGo remains the no-key fallback
+- Keep Ollama and SearXNG private; only publish the web app through the college reverse proxy or firewall
+- The app auto-detects a safe AI concurrency limit from CPU/RAM; set `MAX_CONCURRENT_LLM` only after load testing
+- Change `searxng/settings.yml`'s `server.secret_key` before first public deployment
 - Leave Upstash empty → SQLite / memory (fine on one machine)
 - Do not deploy the model to Vercel (won’t work); host Ollama where the PC is
 

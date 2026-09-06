@@ -10,10 +10,22 @@
 services:
   ollama:
     image: ollama/ollama:latest
-    ports:
-      - "11434:11434"
+    expose:
+      - "11434"
     volumes:
       - ollama_data:/root/.ollama
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+
+  searxng:
+    image: searxng/searxng:latest
+    volumes:
+      - ./searxng:/etc/searxng:rw
+    expose:
+      - "8080"
+    security_opt:
+      - no-new-privileges:true
     restart: unless-stopped
 
   web:
@@ -23,13 +35,22 @@ services:
     environment:
       OLLAMA_HOST: http://ollama:11434
       OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen3:8b}
+      MAX_CONCURRENT_LLM: ${MAX_CONCURRENT_LLM:-}
+      SEARXNG_URL: ${SEARXNG_URL:-http://searxng:8080}
       BRAVE_API_KEY: ${BRAVE_API_KEY:-}
       ADMIN_ACCESS_TOKEN: ${ADMIN_ACCESS_TOKEN:-}
       RATE_LIMIT_PER_MINUTE: ${RATE_LIMIT_PER_MINUTE:-20}
     volumes:
       - app_data:/app/data
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m
     depends_on:
       - ollama
+      - searxng
     restart: unless-stopped
 
 volumes:

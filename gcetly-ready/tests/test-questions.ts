@@ -701,24 +701,21 @@ test("an unrelated error message passes through as-is rather than being masked",
 });
 
 // ---------------------------------------------------------------------------
-// 30. SYSTEM PROMPT -- NO WEB SEARCH DISCLOSURE (the LLM backend swap to
-// Ollama removed the web_search tool entirely -- these verify the prompt
-// is honest about that rather than silently implying a capability that no
-// longer exists)
+// 30. SYSTEM PROMPT -- FREE WEB SEARCH DISCLOSURE
 // ---------------------------------------------------------------------------
 section("SYSTEM PROMPT — NO WEB SEARCH DISCLOSURE");
-test("a current-info question adds the local-knowledge-base caveat", () => {
+test("a current-info question acknowledges the free live-search path", () => {
   const prompt = buildSystemPrompt({ retrieved: [], language: "en", mayNeedCurrentInfo: true });
-  assert.ok(prompt.includes("NO live web search"));
+  assert.ok(prompt.includes("Live web search is available"));
   assert.ok(prompt.toLowerCase().includes("gcetly.ac.in"));
 });
 test("an ordinary question does NOT add the current-info caveat", () => {
   const prompt = buildSystemPrompt({ retrieved: [], language: "en", mayNeedCurrentInfo: false });
   assert.equal(prompt.includes("NO live web search"), false);
 });
-test('an explicit "search the web" request gets told plainly that no search exists', () => {
+test('an explicit "search the web" request mentions the free search path', () => {
   const prompt = buildSystemPrompt({ retrieved: [], language: "en", mayNeedCurrentInfo: false, explicitSearchRequest: true });
-  assert.ok(prompt.includes("no web search capability at all"));
+  assert.ok(prompt.includes("Free live search is available"));
 });
 test("the prompt never references the old web_search tool or Anthropic-specific tool-use language", () => {
   const prompt = buildSystemPrompt({ retrieved: [], language: "en", mayNeedCurrentInfo: true, explicitSearchRequest: true });

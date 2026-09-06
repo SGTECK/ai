@@ -499,5 +499,98 @@
     "sourceType": "official_website",
     "priority": 1,
     "documentDate": "2026-07"
+  },
+  {
+    "id": "kb-academics-grading-001",
+    "sourceUrl": "https://gcetly.ac.in/academics.php",
+    "pageTitle": "Academic Regulations: Grading System and CGPA",
+    "category": "EXAMINATIONS",
+    "content": "GCE-TLY follows Autonomous Choice Based Credit System (CBCS) aligned with Anna University regulations. Letter grades and grade points: O (Outstanding = 10), A+ (Excellent = 9), A (Very Good = 8), B+ (Good = 7), B (Average = 6), C (Satisfactory = 5), RA (Re-appearance / Arrear = 0), SA (Shortage of Attendance = 0), W (Withdrawal). CGPA Formula: Sum of (Course Credits x Grade Points) divided by Sum of Total Credits. Minimum attendance required to appear for end-semester examinations is 75% in each course. Students with 65-74% attendance due to medical reasons or sports representation may be condoned on recommendation by the Principal. Students with <65% attendance (SA) must repeat the course.",
+    "lastChecked": "2026-09-05",
+    "sourceType": "official_website",
+    "priority": 1
+  },
+  {
+    "id": "kb-academics-exams-002",
+    "sourceUrl": "https://gcetly.ac.in/examinations.php",
+    "pageTitle": "Examinations, Internal Assessment, and Revaluation",
+    "category": "EXAMINATIONS",
+    "content": "Evaluation at GCE-TLY consists of Continuous Internal Assessment (CIA - 40% weightage) and End-Semester Examinations (ESE - 60% weightage) for autonomous batches. Internal assessment is based on 3 periodic assessment tests, assignments, and laboratory evaluations. Revaluation / Photocopy: Students can apply for photocopy of answer scripts and revaluation within 10 days of end-semester result publication. Arrear / Supplementary exams are conducted during regular end-semester examination cycles.",
+    "lastChecked": "2026-09-05",
+    "sourceType": "official_website",
+    "priority": 1
+  },
+  {
+    "id": "kb-library-001",
+    "sourceUrl": "https://gcetly.ac.in/library.php",
+    "pageTitle": "Central Library Facilities and Digital Resources",
+    "category": "FACILITIES",
+    "content": "GCE-TLY Central Library spans 1,200 sq.m with a collection of over 35,000 volumes, 12,000+ titles, international & national journals, and e-magazines. Working hours: 8:30 AM to 5:30 PM on all working days. Digital Library facilities: access to IEEE Xplore, DELNET, National Digital Library of India (NDLI), and NPTEL video lectures. Features automated barcode circulation system and dedicated SC/ST Book Bank providing textbook sets for post-matric scholarship holders.",
+    "lastChecked": "2026-09-05",
+    "sourceType": "official_website",
+    "priority": 1
+  },
+  {
+    "id": "kb-placements-training-001",
+    "sourceUrl": "https://gcetly.ac.in/placement.php",
+    "pageTitle": "Training and Placement Cell: Process and Recruiters",
+    "category": "PLACEMENTS",
+    "content": "The Training and Placement Cell at GCE-TLY prepares students for campus recruitment through comprehensive pre-placement training starting from the 5th semester (3rd year). Training covers quantitative aptitude, logical reasoning, verbal ability, soft skills, mock technical interviews, and group discussions. Major recruiters visiting campus include Tata Consultancy Services (TCS), Cognizant (CTS), Wipro, Zoho Corporation, Accenture, Infosys, TVS Motors, L&T Construction, Bosch, Data Patterns, Conserve Solutions, and Rishon. The Placement Officer is Dr. N. Siva Sankari (Contact: 9443909953, placement@gcetly.ac.in).",
+    "lastChecked": "2026-09-05",
+    "sourceType": "official_website",
+    "priority": 1
+  },
+  {
+    "id": "kb-clubs-activities-001",
+    "sourceUrl": "https://gcetly.ac.in/activities.php",
+    "pageTitle": "Student Associations, Clubs, and Professional Chapters",
+    "category": "STUDENT_ACTIVITIES",
+    "content": "GCE-TLY fosters holistic development through active student bodies: IEEE Student Branch, ISTE (Indian Society for Technical Education) Chapter, Fine Arts Club, Rotaract Club, Youth Red Cross (YRC), NSS (National Service Scheme Units 1 & 2), and NCC (Naval and Army wings). Every department organizes annual national-level technical symposiums (such as ECLECTIC by ECE, TECHFEST by CSE, etc.) featuring paper presentations, coding contests, robotics events, and technical workshops.",
+    "lastChecked": "2026-09-05",
+    "sourceType": "official_website",
+    "priority": 1
+  },
+  {
+    "id": "kb-facilities-campus-001",
+    "sourceUrl": "https://gcetly.ac.in/facilities.php",
+    "pageTitle": "Campus Amenities: Infrastructure, Sports, and Transport",
+    "category": "FACILITIES",
+    "content": "GCE-TLY features a sprawling 23-hectare green campus in Tirunelveli (Palayamkottai - Nagercoil NH7 road). Infrastructure includes modern department blocks, 500+ computer labs, campus-wide Wi-Fi, 1000-seater main auditorium, central seminar halls, student canteen, RO purified drinking water plants, solar power units, separate men's and women's gymnasiums, and sports facilities for Cricket, Football, Volleyball, Basketball, Badminton, and Table Tennis. Transport: Well connected by government buses (Routes 11, 45, 54 from New Bus Stand), located 7 km from Tirunelveli Junction Railway Station.",
+    "lastChecked": "2026-09-05",
+    "sourceType": "official_website",
+    "priority": 1
+  },
+  {
+    "id": "kb-executive-summary-programs-2026",
+    "sourceUrl": "https://gcetly.ac.in/admissionprospectus.php",
+    "pageTitle": "Executive Summary: Programs and Seat Intake 2026-27",
+    "category": "ACADEMICS",
+    "content": "Supporting document supplied as 'Executive Summary.docx' and dated for 2026-27: it lists seven full-time four-year B.E. programs with stated intakes of Civil 60, Mechanical 120, EEE 60, ECE 120, CSE 60, Electronics and Instrumentation 60, and Industrial Biotechnology 60, for a stated total of 540 full-time UG seats. It also lists five part-time B.E. programs (Civil, Mechanical, EEE, ECE, CSE), 60 seats each, total 300, and five M.E. specializations (Engineering Design, Power Electronics & Drives, CSE, Structural Engineering, Communication Systems), 18 seats each, total 90. These figures come from a compiled summary and must be checked against the current official prospectus or admission notice if they conflict with another official source.",
+    "lastChecked": "2026-09-06",
+    "sourceType": "official_pdf",
+    "priority": 2,
+    "documentDate": "2026-27"
+  },
+  {
+    "id": "kb-executive-summary-fees-2026",
+    "sourceUrl": "https://www.gcetly.ac.in/admissionprospectus.php",
+    "pageTitle": "Executive Summary: Fees 2026-27",
+    "category": "FEES",
+    "content": "Supporting document supplied as 'Executive Summary.docx' and dated for 2026-27: stated first-year full-time B.E. totals are General/BC/MBC/DNC Rs. 10,810; CBSE General/BC/MBC/DNC Rs. 11,300; First Graduate General/BC/MBC/DNC Rs. 8,810; Physically Challenged General/BC/MBC/DNC Rs. 7,310; SC/ST Rs. 8,810; and Other-State Rs. 12,000. Continuing B.E. II/III/IV annual fee is stated as Rs. 6,675; lateral-entry B.E. total is stated as Rs. 10,760; M.E. first-year totals are stated as General/BC/MBC/DNC Rs. 11,710, Physically Challenged Rs. 8,210, SC/ST Rs. 9,710, and Other-State Rs. 12,860. Hostel annual total is stated as Rs. 14,350. Fees are time-sensitive and category-dependent: verify the current official prospectus before quoting an amount.",
+    "lastChecked": "2026-09-06",
+    "sourceType": "official_pdf",
+    "priority": 2,
+    "documentDate": "2026-27"
+  },
+  {
+    "id": "kb-executive-summary-admissions-hostel-2026",
+    "sourceUrl": "https://gcetly.ac.in/admissionprocess.php",
+    "pageTitle": "Executive Summary: Admissions, Documents, and Hostels 2026-27",
+    "category": "ADMISSIONS",
+    "content": "Supporting document supplied as 'Executive Summary.docx': B.E. admission is described as TNEA single-window counselling; M.E. admission as Anna University's CEAP based on GATE/TANCET; lateral entry is described for Diploma/B.Sc. holders joining second year. The document's checklist includes allotment order, 10th/12th marksheets, transfer and conduct certificates, community and applicable concession certificates, physical/medical fitness certificates, Aadhaar, photographs, bank passbook copy, anti-ragging affidavit, and other category-specific documents. It describes seven hostels, four for men and three for women, with stated capacities of approximately 578 boys and 528 girls, and an annual hostel fee of Rs. 14,350. Dates, requirements, hostel allocation, and capacity are subject to current official notices and availability.",
+    "lastChecked": "2026-09-06",
+    "sourceType": "official_pdf",
+    "priority": 2,
+    "documentDate": "2026-27"
   }
 ]

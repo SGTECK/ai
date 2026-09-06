@@ -6,6 +6,8 @@ import { getDb, getDbPath } from "@/lib/db";
 import { getLlmStatus, warmModel } from "@/lib/llm";
 import fs from "node:fs";
 import path from "node:path";
+import { isWebSearchConfigured } from "@/lib/webSearch";
+import { getServerCapacity } from "@/lib/serverCapacity";
 
 export const runtime = "nodejs";
 
@@ -77,6 +79,7 @@ export async function GET(request: Request) {
 
   const ollama = await checkOllama();
   const lastUpdate = lastKnowledgeUpdate();
+  const searxngConfigured = Boolean(process.env.SEARXNG_URL);
   const braveConfigured = Boolean(process.env.BRAVE_API_KEY);
 
   let warm: { ok: boolean; detail: string } | undefined;
@@ -110,7 +113,8 @@ export async function GET(request: Request) {
       faqEntries: faqCount,
       documentChunks: (() => { try { return (getDb().prepare("SELECT COUNT(*) as n FROM document_chunks").get() as {n:number}).n; } catch { return 0; } })(),
       lastKnowledgeUpdate: lastUpdate,
-      webSearchConfigured: braveConfigured,
+      capacity: getServerCapacity(),
+      webSearchConfigured: isWebSearchConfigured(),
       timestamp: new Date().toISOString(),
     });
   }
@@ -123,11 +127,13 @@ export async function GET(request: Request) {
     knowledgeEntries: knowledgeCount,
     faqEntries: faqCount,
     lastKnowledgeUpdate: lastUpdate,
+    capacity: getServerCapacity(),
     webSearch: {
       enabled: true,
-      primary: braveConfigured ? "brave" : "duckduckgo",
+      primary: searxngConfigured ? "searxng" : braveConfigured ? "brave" : "duckduckgo",
+      searxngConfigured,
       braveConfigured,
-      note: "DuckDuckGo HTML fallback is always available when Brave key is missing",
+      note: "Self-hosted SearXNG is preferred; DuckDuckGo remains the no-key fallback",
     },
     rateLimitBackend: rateLimitBackendName(),
     feedbackBackend: feedbackBackendName(),
