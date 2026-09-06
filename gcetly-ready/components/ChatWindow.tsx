@@ -39,8 +39,8 @@ export default function ChatWindow() {
   const [restoredFromHistory, setRestoredFromHistory] = useState(false);
   const [input, setInput] = useState("");
   const [streaming, setStreaming] = useState(false);
-  // Default dark (product look); restored from localStorage on mount
-  const [darkMode, setDarkMode] = useState(true);
+  // Default light; restore an explicit preference on mount
+  const [darkMode, setDarkMode] = useState(false);
   const [themeReady, setThemeReady] = useState(false);
   const [uiLanguage, setUiLanguage] = useState<"en" | "ta">("en");
   const [sessionId, setSessionId] = useState<string>("");
@@ -76,12 +76,11 @@ export default function ChatWindow() {
       }
       setRestoredFromHistory(true);
     }
-    // Theme: localStorage → system preference → default dark
+    // Theme: localStorage preference, otherwise light
     try {
       const saved = localStorage.getItem("gcetly-theme");
       if (saved === "light") setDarkMode(false);
       else if (saved === "dark") setDarkMode(true);
-      else if (window.matchMedia?.("(prefers-color-scheme: light)").matches) setDarkMode(false);
     } catch { /* ignore */ }
     setThemeReady(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps

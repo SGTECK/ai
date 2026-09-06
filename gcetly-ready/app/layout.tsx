@@ -24,7 +24,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {/* Prevent theme flash before React hydrates */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var t=localStorage.getItem('gcetly-theme');if(t==='light'){document.documentElement.classList.remove('dark');document.documentElement.dataset.theme='light';}else{document.documentElement.classList.add('dark');document.documentElement.dataset.theme='dark';}}catch(e){document.documentElement.classList.add('dark');}})();`,
+            __html: `(function(){try{var t=localStorage.getItem('gcetly-theme');if(t==='dark'){document.documentElement.classList.add('dark');document.documentElement.dataset.theme='dark';}else{document.documentElement.classList.remove('dark');document.documentElement.dataset.theme='light';}}catch(e){document.documentElement.classList.remove('dark');}})();`,
           }}
         />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
