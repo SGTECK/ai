@@ -16,10 +16,10 @@ export type QueryRoute =
   | "GENERAL_KNOWLEDGE";
 
 const COLLEGE_HINT =
-  /\b(gce|gcetly|tirunelveli|hostel|tnea|anna\s*university|admission|department|ece|cse|mech|civil|placement|scholarship|fee|b\.e|m\.e|principal|hod|campus)\b/i;
+  /\b(gce|gcetly|tirunelveli|hostel|tnea|anna\s*university|admission|department|ece|cse|mech|civil|placement|scholarship|fee|transfer|lateral|nss|dress\s*code|uniform|attire|b\.e|m\.e|principal|hod|campus)\b/i;
 
 const EXPANDED_COLLEGE_HINT =
-  /\b(gce|gcetly|tirunelveli|hostel|hostels|tnea|anna\s*university|admission|admissions|department|departments|ece|cse|mech|civil|eee|eie|placement|placements|scholarship|scholarships|fee|fees|b\.e|m\.e|principal|hod|campus|wifi|password|menu|cutoff|cutoffs|quota|salary|exam\s*paper|question\s*paper|internal\s*marks|attendance|canteen|mess|bus|library|hall\s*ticket|revaluation|lab|credits?|semester|dota|dote|guidelines|prospectus|circular|notification|helpline|helpdesk)\b/i;
+  /\b(gce|gcetly|tirunelveli|hostel|hostels|tnea|anna\s*university|admission|admissions|department|departments|ece|cse|mech|civil|eee|eie|placement|placements|scholarship|scholarships|fee|fees|transfer|lateral|nss|dress\s*code|uniform|attire|b\.e|m\.e|principal|hod|campus|wifi|password|menu|cutoff|cutoffs|quota|salary|exam\s*paper|question\s*paper|internal\s*marks|attendance|canteen|mess|bus|library|hall\s*ticket|revaluation|lab|credits?|semester|dota|dote|guidelines|prospectus|circular|notification|helpline|helpdesk)\b/i;
 
 export function isCollegeSpecificQuery(message: string): boolean {
   return EXPANDED_COLLEGE_HINT.test(message);
@@ -49,11 +49,11 @@ export function routeQuery(
   }
 
   if (COLLEGE_HINT.test(q)) {
-    return opts.topScore > 0 ? "LOCAL_ONLY" : "LOCAL_PLUS_WEB";
+    return opts.topScore >= 6 ? "LOCAL_ONLY" : "LOCAL_PLUS_WEB";
   }
 
-  // Unknown domain: try local first; free mode avoids web
-  if (opts.freeMode) return "LOCAL_ONLY";
+  // Unknown questions should get a web chance when local knowledge is absent.
+  if (opts.freeMode) return "LOCAL_PLUS_WEB";
   return opts.topScore > 0 ? "LOCAL_ONLY" : "LOCAL_PLUS_WEB";
 }
 

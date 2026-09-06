@@ -14,7 +14,7 @@ import { isRetryableError, backoffDelayMs, MAX_RETRIES } from "./retryLogic";
 
 const OLLAMA_HOST = process.env.OLLAMA_HOST || "http://localhost:11434";
 const MODEL = process.env.OLLAMA_MODEL || "qwen2.5:3b";
-const REQUEST_TIMEOUT_MS = Number(process.env.OLLAMA_TIMEOUT_MS ?? 120_000);
+const REQUEST_TIMEOUT_MS = Number(process.env.OLLAMA_TIMEOUT_MS ?? 180_000);
 
 /** How long Ollama keeps the model resident after a request (e.g. "30m", "0", "-1"). */
 const KEEP_ALIVE = process.env.OLLAMA_KEEP_ALIVE || "30m";

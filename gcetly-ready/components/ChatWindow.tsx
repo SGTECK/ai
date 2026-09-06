@@ -198,7 +198,7 @@ export default function ChatWindow() {
                 role: "assistant",
                 content: "",
                 streaming: true,
-                retrying: `Service busy, retrying in ${Math.round(delayMs / 1000)}s… (attempt ${attempt}/3)`,
+                retrying: `Thinking… retrying in ${Math.round(delayMs / 1000)}s (attempt ${attempt}/3)`,
               };
               return next;
             });

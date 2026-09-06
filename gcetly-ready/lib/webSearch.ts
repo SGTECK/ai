@@ -16,6 +16,7 @@ import {
   sqliteSetSearchCache,
   sqliteCleanupSearchCache,
 } from "./db";
+import { isSafeUrl } from "./urlSafety";
 
 export interface WebSearchResult {
   title: string;
@@ -38,6 +39,18 @@ const CACHE_TTL_MS = 30 * 60 * 1000; // 30 minutes
 const CACHE_MAX_ENTRIES = 200;
 /** Max live (non-cache) searches per rolling minute process-wide. */
 const SEARCH_RATE_LIMIT_PER_MINUTE = Number(process.env.SEARCH_RATE_LIMIT_PER_MINUTE ?? 10);
+
+function cleanSearchText(value: unknown, maxLength: number): string {
+  return String(value ?? "")
+    .replace(/[\u0000-\u001F\u007F]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, maxLength);
+}
+
+function isUsableSearchResult(result: WebSearchResult): boolean {
+  return isSafeUrl(result.url) && Boolean(result.title);
+}
 
 const searchHits: number[] = [];
 function allowSearchRequest(): boolean {
@@ -187,11 +200,11 @@ async function searchSearXNG(query: string, signal?: AbortSignal): Promise<WebSe
       (Array.isArray(data.results) ? data.results : [])
         .slice(0, MAX_RESULTS)
         .map((item: any) => ({
-          title: String(item.title || "").slice(0, 200),
-          url: String(item.url || ""),
-          snippet: String(item.content || "").slice(0, 400),
+          title: cleanSearchText(item.title, 200),
+          url: String(item.url || "").trim(),
+          snippet: cleanSearchText(item.content, 400),
         }))
-        .filter((r: WebSearchResult) => r.url.startsWith("http") && r.title)
+        .filter(isUsableSearchResult)
     );
     return { results, provider: "searxng" };
   } catch (err) {
@@ -239,11 +252,11 @@ async function searchBrave(query: string, signal?: AbortSignal): Promise<WebSear
       raw
         .slice(0, MAX_RESULTS)
         .map((item: any) => ({
-          title: String(item.title || "").slice(0, 200),
-          url: String(item.url || ""),
-          snippet: String(item.description || item.extra_snippets?.[0] || "").slice(0, 400),
+          title: cleanSearchText(item.title, 200),
+          url: String(item.url || "").trim(),
+          snippet: cleanSearchText(item.description || item.extra_snippets?.[0], 400),
         }))
-        .filter((r: WebSearchResult) => r.url.startsWith("http"))
+        .filter(isUsableSearchResult)
     );
 
     return { results, provider: "brave" };
@@ -307,8 +320,8 @@ async function searchDuckDuckGo(query: string, signal?: AbortSignal): Promise<We
           /* keep original */
         }
       }
-      if (!href.startsWith("http")) continue;
-      const title = m[2].replace(/<[^>]+>/g, "").trim();
+      if (!isSafeUrl(href)) continue;
+      const title = cleanSearchText(m[2].replace(/<[^>]+>/g, ""), 200);
       if (title) links.push({ url: href, title: title.slice(0, 200) });
     }
 
@@ -321,7 +334,7 @@ async function searchDuckDuckGo(query: string, signal?: AbortSignal): Promise<We
       results.push({
         title: links[i].title,
         url: links[i].url,
-        snippet: snippets[i] || "",
+        snippet: cleanSearchText(snippets[i], 400),
       });
     }
 

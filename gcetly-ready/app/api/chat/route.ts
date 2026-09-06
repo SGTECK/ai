@@ -82,6 +82,34 @@ function isFaqFastMatch(message: string, top: RetrievedItem): boolean {
   return matched / queryTokens.length >= 0.65;
 }
 
+function answerFromRetrieved(top: RetrievedItem | undefined): string | null {
+  if (!top) return null;
+  if (top.kind === "faq") {
+    const answerStart = top.text.indexOf("\nA:");
+    return answerStart >= 0 ? top.text.slice(answerStart + 3).trim() : top.text.trim();
+  }
+  return top.text.trim() || null;
+}
+
+function filterRetrievedForIntent(message: string, items: RetrievedItem[]): RetrievedItem[] {
+  const normalized = message.toLowerCase();
+  const isMessTiming = /\bmess\b/.test(normalized) && /\btim(e|ing|ings)\b|\bschedule\b|\bhour/.test(normalized);
+  const isMessReduction = /\bmess\b/.test(normalized) && /reduction|reduce|leave|bill/.test(normalized);
+  const isDressCode = /dress\s*code|uniform|attire/.test(normalized);
+  const isCurrentNss = /\bnss\b/.test(normalized) && /latest|current|recent|today|2026|2027/.test(normalized);
+
+  if (isMessTiming && !isMessReduction) {
+    return items.filter((item) => /timing|schedule|breakfast|lunch|dinner|tea|silent hours/i.test(`${item.title} ${item.text}`));
+  }
+  if (isDressCode) {
+    return items.filter((item) => /dress\s*code|uniform|attire/i.test(`${item.title} ${item.text}`));
+  }
+  if (isCurrentNss) {
+    return items.filter((item) => /\bnss\b|national service scheme/i.test(`${item.title} ${item.text}`));
+  }
+  return items;
+}
+
 export async function POST(req: NextRequest) {
   // --- Security: reject non-JSON posts (stops casual form/CSRF-style noise) ---
   if (!requireJsonContentType(req.headers.get("content-type"))) {
@@ -191,7 +219,10 @@ export async function POST(req: NextRequest) {
         }
       }
 
-      const { items: retrieved, topScore } = await hybridRetrieve(message, slimHistory, topK);
+      const initialRetrieval = await hybridRetrieve(message, slimHistory, topK);
+      const retrieved = filterRetrievedForIntent(message, initialRetrieval.items);
+      const topScore = retrieved[0]?.score ?? 0;
+      const alwaysHybrid = process.env.HYBRID_ALWAYS_BOTH !== "0";
       trackEvent("chat_query", message.slice(0, 120));
       let confidence = scoreToConfidence(topScore);
 
@@ -199,6 +230,7 @@ export async function POST(req: NextRequest) {
       // Fixes multi-minute waits on "who is the principal" when Ollama is cold/slow.
       const top = retrieved[0];
       const faqFast =
+        !alwaysHybrid &&
         process.env.FAQ_FAST_PATH !== "0" &&
         retrieved.length > 0 &&
         top?.kind === "faq" &&
@@ -234,7 +266,7 @@ export async function POST(req: NextRequest) {
       const route = routeQuery(message, { topScore, freeMode });
       const shouldSearch =
         webSearchAvailable &&
-        (explicitSearchRequest || shouldRunWebSearch(route));
+        (alwaysHybrid || explicitSearchRequest || shouldRunWebSearch(route));
 
       let webContextBlock = "";
       let webSources: SourceRef[] = [];
@@ -243,7 +275,9 @@ export async function POST(req: NextRequest) {
       if (shouldSearch) {
         webSearchAttempted = true;
         // Prefer official site + college name in the query for better results
-        const searchQuery = message.toLowerCase().includes("gcetly") ||
+        const searchQuery = message.toLowerCase().includes("nss")
+          ? `${message} GCE Tirunelveli NSS official gcetly.ac.in`
+          : message.toLowerCase().includes("gcetly") ||
           message.toLowerCase().includes("gce tirunelveli") ||
           message.toLowerCase().includes("government college of engineering")
           ? message
@@ -346,6 +380,24 @@ export async function POST(req: NextRequest) {
           } else if (event.type === "aborted") {
             controller.enqueue(sseEncode({ type: "aborted" }));
           } else if (event.type === "error") {
+            const groundedFallback = !assembled.trim() && retrieved.length > 0
+              ? answerFromRetrieved(top)
+              : null;
+            if (groundedFallback) {
+              assembled = groundedFallback;
+              controller.enqueue(sseEncode({ type: "text", text: groundedFallback }));
+              controller.enqueue(
+                sseEncode({
+                  type: "done",
+                  sources: localSources,
+                  language,
+                  followUps,
+                  confidence,
+                  topScore,
+                })
+              );
+              continue;
+            }
             // Graceful degradation: surface a clear message when Ollama is unreachable
             const msg =
               event.error.includes("ECONNREFUSED") ||

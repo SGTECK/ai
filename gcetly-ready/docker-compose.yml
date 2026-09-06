@@ -34,10 +34,11 @@ services:
       - "3000:3000"
     environment:
       OLLAMA_HOST: http://ollama:11434
-      OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen3:8b}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen2.5:3b}
       MAX_CONCURRENT_LLM: ${MAX_CONCURRENT_LLM:-}
       SEARXNG_URL: ${SEARXNG_URL:-http://searxng:8080}
       BRAVE_API_KEY: ${BRAVE_API_KEY:-}
+      HYBRID_ALWAYS_BOTH: ${HYBRID_ALWAYS_BOTH:-1}
       ADMIN_ACCESS_TOKEN: ${ADMIN_ACCESS_TOKEN:-}
       RATE_LIMIT_PER_MINUTE: ${RATE_LIMIT_PER_MINUTE:-20}
     volumes:

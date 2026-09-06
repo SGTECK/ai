@@ -12,7 +12,7 @@ import { getServerCapacity } from "@/lib/serverCapacity";
 export const runtime = "nodejs";
 
 const OLLAMA_HOST = process.env.OLLAMA_HOST || "http://localhost:11434";
-const MODEL = process.env.OLLAMA_MODEL || "qwen3:8b";
+const MODEL = process.env.OLLAMA_MODEL || "qwen2.5:3b";
 
 async function checkOllama(): Promise<{
   reachable: boolean;

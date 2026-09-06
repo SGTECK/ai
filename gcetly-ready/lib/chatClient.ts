@@ -64,6 +64,7 @@ export async function streamChatRequest(
     const reader = res.body.getReader();
     const decoder = new TextDecoder();
     let buffer = "";
+    let terminalEventReceived = false;
 
     while (true) {
       const { value, done } = await reader.read();
@@ -84,7 +85,8 @@ export async function streamChatRequest(
         }
         if (payload.type === "text") callbacks.onText(payload.text);
         else if (payload.type === "retrying") callbacks.onRetrying?.({ attempt: payload.attempt, maxAttempts: payload.maxAttempts, delayMs: payload.delayMs });
-        else if (payload.type === "done")
+        else if (payload.type === "done") {
+          terminalEventReceived = true;
           callbacks.onDone({
             sources: payload.sources ?? [],
             language: payload.language,
@@ -92,9 +94,19 @@ export async function streamChatRequest(
             confidence: payload.confidence,
             topScore: payload.topScore,
           });
-        else if (payload.type === "aborted") callbacks.onAborted?.();
-        else if (payload.type === "error") callbacks.onError(payload.error);
+        }
+        else if (payload.type === "aborted") {
+          terminalEventReceived = true;
+          callbacks.onAborted?.();
+        }
+        else if (payload.type === "error") {
+          terminalEventReceived = true;
+          callbacks.onError(payload.error);
+        }
       }
+    }
+    if (!terminalEventReceived && !abortSignal?.aborted) {
+      callbacks.onError("The response was interrupted. Please try again.");
     }
   } catch (err) {
     if (
